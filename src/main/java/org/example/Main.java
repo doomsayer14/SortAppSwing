@@ -173,7 +173,7 @@ public class Main extends JFrame {
 
     private void onNumberClick(int value) {
         if (value <= MIN_VALUE) {
-            generateNumbers(numbers.size());
+            generateNumbers(value);
         } else {
             showMessage("Please select a value smaller or equal to " + MIN_VALUE + ".");
         }
