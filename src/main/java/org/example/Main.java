@@ -19,8 +19,10 @@ import java.awt.FlowLayout;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 
 public class Main extends JFrame {
@@ -57,6 +59,9 @@ public class Main extends JFrame {
     private Timer sortTimer;
     private List<int[]> quicksortSteps;
 
+    private final Set<Integer> highlightedIndices;
+
+
     public Main() {
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
@@ -71,6 +76,7 @@ public class Main extends JFrame {
         random = new Random();
         descending = true;
         numbers = new ArrayList<>();
+        highlightedIndices = new HashSet<>();
 
         setTitle(APPLICATION_NAME);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -157,21 +163,36 @@ public class Main extends JFrame {
         numbersPanel.removeAll();
         JPanel column = createColumnPanel();
         int count = 0;
+        int index = 0;
 
         for (int num : numbers) {
             JButton btn = new JButton(String.valueOf(num));
-            styleBlueButton(btn);
+
+            if (highlightedIndices.contains(index)) {
+                btn.setBackground(Color.ORANGE);
+                btn.setForeground(Color.BLACK);
+            } else {
+                styleBlueButton(btn);
+            }
+
             btn.addActionListener(e -> onNumberClick(Integer.parseInt(btn.getText())));
+
             column.add(Box.createVerticalStrut(5));
             column.add(btn);
+
             count++;
+            index++;
+
             if (count == ROWS_PER_COLUMN) {
                 numbersPanel.add(column);
                 column = createColumnPanel();
                 count = 0;
             }
         }
-        if (count > 0) numbersPanel.add(column);
+
+        if (count > 0) {
+            numbersPanel.add(column);
+        }
 
         numbersPanel.revalidate();
         numbersPanel.repaint();
@@ -201,32 +222,41 @@ public class Main extends JFrame {
 
         int[] array = numbers.stream().mapToInt(i -> i).toArray();
         quicksortSteps = new ArrayList<>();
-        quicksort(array.clone(), 0, array.length - 1);
+        highlightedIndices.clear();
+        quicksortWithTracking(array.clone(), 0, array.length - 1);
 
         sortTimer = new Timer(300, e -> {
             if (stepIndex[0] >= quicksortSteps.size()) {
                 sortTimer.stop();
+                highlightedIndices.clear();
+                updateNumberButtons();
                 return;
             }
+
             int[] step = quicksortSteps.get(stepIndex[0]++);
             numbers.clear();
             for (int v : step) numbers.add(v);
             if (!descending) Collections.reverse(numbers);
+
             updateNumberButtons();
+            highlightedIndices.clear();
         });
+
         sortTimer.start();
     }
 
-    private void quicksort(int[] arr, int low, int high) {
+
+    private void quicksortWithTracking(int[] arr, int low, int high) {
         if (low < high) {
-            int p = partition(arr, low, high);
+            int p = partitionWithTracking(arr, low, high);
             quicksortSteps.add(arr.clone());
-            quicksort(arr, low, p - 1);
-            quicksort(arr, p + 1, high);
+            quicksortWithTracking(arr, low, p - 1);
+            quicksortWithTracking(arr, p + 1, high);
         }
     }
 
-    private int partition(int[] arr, int low, int high) {
+
+    private int partitionWithTracking(int[] arr, int low, int high) {
         int pivot = arr[high];
         int i = low;
         for (int j = low; j < high; j++) {
@@ -234,12 +264,16 @@ public class Main extends JFrame {
                 int tmp = arr[i];
                 arr[i] = arr[j];
                 arr[j] = tmp;
+                highlightedIndices.add(i);
+                highlightedIndices.add(j);
                 i++;
             }
         }
         int tmp = arr[i];
         arr[i] = arr[high];
         arr[high] = tmp;
+        highlightedIndices.add(i);
+        highlightedIndices.add(high);
         return i;
     }
 
