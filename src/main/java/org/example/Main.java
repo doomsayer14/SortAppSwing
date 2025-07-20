@@ -122,7 +122,13 @@ public class Main extends JFrame {
         resetButton.setBounds(540, 160, 100, 35);
 
         sortButton.addActionListener(e -> startSorting());
-        resetButton.addActionListener(e -> cardLayout.show(mainPanel, INTRO_LAYOUT_NAME));
+
+        resetButton.addActionListener(e -> {
+            if (sortTimer != null) {
+                sortTimer.stop();
+            }
+            cardLayout.show(mainPanel, INTRO_LAYOUT_NAME);
+        });
 
         sortPanel.add(scrollPane);
         sortPanel.add(sortButton);
