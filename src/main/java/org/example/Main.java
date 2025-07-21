@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-
 public class Main extends JFrame {
 
     private static final String INTRO_LAYOUT_NAME = "Intro";
@@ -60,7 +59,7 @@ public class Main extends JFrame {
     private List<int[]> quicksortSteps;
 
     private final Set<Integer> highlightedIndices;
-
+    private List<Set<Integer>> highlightSteps;
 
     public Main() {
         cardLayout = new CardLayout();
@@ -127,7 +126,11 @@ public class Main extends JFrame {
         sortButton.setBounds(540, 100, 100, 35);
         resetButton.setBounds(540, 160, 100, 35);
 
-        sortButton.addActionListener(e -> startSorting());
+        sortButton.addActionListener(e -> {
+            descending = !descending;
+            sortButton.setText(descending ? SORT_DESC_BUTTON_NAME : SORT_ASC_BUTTON_NAME);
+            startSorting();
+        });
 
         resetButton.addActionListener(e -> {
             if (sortTimer != null) {
@@ -213,18 +216,22 @@ public class Main extends JFrame {
         cardLayout.show(mainPanel, SORT_BUTTON_NAME);
     }
 
+    /**
+     * Starts the sorting process with visual animation.
+     * Uses a timer to animate each step of the quicksort.
+     * Only highlights buttons that were swapped at each step.
+     */
     private void startSorting() {
-        final int[] stepIndex = {0};
-        if (sortTimer != null && sortTimer.isRunning()) return;
+        if (numbers == null || numbers.size() <= 1) return;
 
-        descending = !descending;
-        sortButton.setText(descending ? SORT_DESC_BUTTON_NAME : SORT_ASC_BUTTON_NAME);
-
-        int[] array = numbers.stream().mapToInt(i -> i).toArray();
         quicksortSteps = new ArrayList<>();
+        highlightSteps = new ArrayList<>();
         highlightedIndices.clear();
-        quicksortWithTracking(array.clone(), 0, array.length - 1);
 
+        int[] arr = numbers.stream().mapToInt(i -> i).toArray();
+        quicksortWithTracking(arr, 0, arr.length - 1, descending);
+
+        final int[] stepIndex = {0};
         sortTimer = new Timer(300, e -> {
             if (stepIndex[0] >= quicksortSteps.size()) {
                 sortTimer.stop();
@@ -233,47 +240,73 @@ public class Main extends JFrame {
                 return;
             }
 
-            int[] step = quicksortSteps.get(stepIndex[0]++);
+            int[] step = quicksortSteps.get(stepIndex[0]);
+            Set<Integer> highlight = highlightSteps.get(stepIndex[0]);
+
             numbers.clear();
             for (int v : step) numbers.add(v);
             if (!descending) Collections.reverse(numbers);
 
-            updateNumberButtons();
             highlightedIndices.clear();
-        });
+            highlightedIndices.addAll(highlight);
 
+            updateNumberButtons();
+            stepIndex[0]++;
+        });
         sortTimer.start();
     }
 
-
-    private void quicksortWithTracking(int[] arr, int low, int high) {
+    /**
+     * Performs a quicksort on the given array while tracking each step and swap.
+     * Stores intermediate array states and swap indices for animation.
+     *
+     * @param arr the array to sort
+     * @param low the starting index
+     * @param high the ending index
+     * @param descending true to sort descending, false for ascending
+     */
+    private void quicksortWithTracking(int[] arr, int low, int high, boolean descending) {
         if (low < high) {
-            int p = partitionWithTracking(arr, low, high);
+            int pivotIndex = partitionWithTracking(arr, low, high, descending);
             quicksortSteps.add(arr.clone());
-            quicksortWithTracking(arr, low, p - 1);
-            quicksortWithTracking(arr, p + 1, high);
+            quicksortWithTracking(arr, low, pivotIndex - 1, descending);
+            quicksortWithTracking(arr, pivotIndex + 1, high, descending);
         }
     }
 
-
-    private int partitionWithTracking(int[] arr, int low, int high) {
+    /**
+     * Partitions the array using the Lomuto scheme.
+     * Tracks the indices of elements that were swapped for visual feedback.
+     *
+     * @param arr the array to partition
+     * @param low the starting index
+     * @param high the pivot index
+     * @param descending true to sort descending, false for ascending
+     * @return the partition index after pivot placement
+     */
+    private int partitionWithTracking(int[] arr, int low, int high, boolean descending) {
         int pivot = arr[high];
         int i = low;
+        Set<Integer> swappedIndices = new HashSet<>();
+
         for (int j = low; j < high; j++) {
-            if (arr[j] > pivot) {
-                int tmp = arr[i];
+            if ((descending && arr[j] > pivot) || (!descending && arr[j] < pivot)) {
+                int temp = arr[i];
                 arr[i] = arr[j];
-                arr[j] = tmp;
-                highlightedIndices.add(i);
-                highlightedIndices.add(j);
+                arr[j] = temp;
+                swappedIndices.add(i);
+                swappedIndices.add(j);
                 i++;
             }
         }
-        int tmp = arr[i];
+
+        int temp = arr[i];
         arr[i] = arr[high];
-        arr[high] = tmp;
-        highlightedIndices.add(i);
-        highlightedIndices.add(high);
+        arr[high] = temp;
+        swappedIndices.add(i);
+        swappedIndices.add(high);
+
+        highlightSteps.add(new HashSet<>(swappedIndices));
         return i;
     }
 
