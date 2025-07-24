@@ -1,5 +1,15 @@
 package org.example;
 
+import java.awt.CardLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -12,18 +22,11 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
-import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-
+/**
+ * A Java Swing application that visualizes quicksort on a list of random numbers.
+ * The application allows the user to enter how many numbers to sort, visualizes sorting
+ * step-by-step, and supports ascending/descending sort order with element highlighting.
+ */
 public class Main extends JFrame {
 
     private static final String INTRO_LAYOUT_NAME = "Intro";
@@ -57,13 +60,9 @@ public class Main extends JFrame {
     private final List<Integer> numbers;
     private Timer sortTimer;
     private List<int[]> quicksortSteps;
-
-    private final Set<Integer> highlightedIndices;
     private List<Set<Integer>> highlightSteps;
+    private final Set<Integer> highlightedIndices;
 
-    /**
-     * Constructor initializes the application window and components.
-     */
     public Main() {
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
@@ -92,9 +91,6 @@ public class Main extends JFrame {
         setVisible(true);
     }
 
-    /**
-     * Builds the intro screen with input field for number count and enter button.
-     */
     private void buildIntroScreen() {
         JPanel introPanel = new JPanel(null);
 
@@ -123,9 +119,6 @@ public class Main extends JFrame {
         mainPanel.add(introPanel, INTRO_LAYOUT_NAME);
     }
 
-    /**
-     * Builds the main sorting screen with number buttons and control buttons.
-     */
     private void buildSortScreen() {
         JPanel sortPanel = new JPanel(null);
 
@@ -155,12 +148,6 @@ public class Main extends JFrame {
         mainPanel.add(sortPanel, SORT_BUTTON_NAME);
     }
 
-    /**
-     * Generates a list of random numbers of specified count.
-     * Ensures at least one number is less than or equal to MIN_VALUE.
-     *
-     * @param count the number of random numbers to generate
-     */
     private void generateNumbers(int count) {
         numbers.clear();
         boolean hasSmall = false;
@@ -173,19 +160,10 @@ public class Main extends JFrame {
         updateNumberButtons();
     }
 
-    /**
-     * Generates a random number between 1 and MAX_NUMBER inclusive.
-     *
-     * @return a random integer number
-     */
     private int generateRandomNumber() {
         return random.nextInt(MAX_NUMBER) + 1;
     }
 
-    /**
-     * Updates the display of number buttons.
-     * Highlights buttons whose indices are in highlightedIndices set.
-     */
     private void updateNumberButtons() {
         numbersPanel.removeAll();
         JPanel column = createColumnPanel();
@@ -225,13 +203,6 @@ public class Main extends JFrame {
         numbersPanel.repaint();
     }
 
-    /**
-     * Handles click on a number button.
-     * If the value is less than or equal to MIN_VALUE, generates new numbers of that size.
-     * Otherwise, shows an alert message.
-     *
-     * @param value the clicked number value
-     */
     private void onNumberClick(int value) {
         if (value <= MIN_VALUE) {
             generateNumbers(value);
@@ -240,9 +211,6 @@ public class Main extends JFrame {
         }
     }
 
-    /**
-     * Shows the sorting screen and resets sorting order to descending by default.
-     */
     private void showSortScreen() {
         descending = true;
         sortButton.setText(SORT_DESC_BUTTON_NAME);
@@ -250,11 +218,6 @@ public class Main extends JFrame {
         cardLayout.show(mainPanel, SORT_BUTTON_NAME);
     }
 
-    /**
-     * Starts the sorting animation.
-     * Uses a timer to animate each step of the quicksort.
-     * Highlights only the buttons involved in swaps at each step.
-     */
     private void startSorting() {
         if (numbers == null || numbers.size() <= 1) return;
 
@@ -263,7 +226,7 @@ public class Main extends JFrame {
         highlightedIndices.clear();
 
         int[] arr = numbers.stream().mapToInt(i -> i).toArray();
-        quicksortWithTracking(arr, 0, arr.length - 1, descending);
+        quicksort(arr, 0, arr.length - 1, descending);
 
         final int[] stepIndex = {0};
         sortTimer = new Timer(300, e -> {
@@ -279,7 +242,6 @@ public class Main extends JFrame {
 
             numbers.clear();
             for (int v : step) numbers.add(v);
-            if (!descending) Collections.reverse(numbers);
 
             highlightedIndices.clear();
             highlightedIndices.addAll(highlight);
@@ -290,77 +252,53 @@ public class Main extends JFrame {
         sortTimer.start();
     }
 
-    /**
-     * Performs a quicksort on the given array while tracking intermediate states and swaps.
-     *
-     * @param arr the array to sort
-     * @param low the starting index of the subarray
-     * @param high the ending index of the subarray
-     * @param descending true for descending sort, false for ascending
-     */
-    private void quicksortWithTracking(int[] arr, int low, int high, boolean descending) {
+    private void quicksort(int[] arr, int low, int high, boolean descending) {
         if (low < high) {
-            int pivotIndex = partitionWithTracking(arr, low, high, descending);
+            int pivotIndex = partition(arr, low, high, descending);
             quicksortSteps.add(arr.clone());
-            quicksortWithTracking(arr, low, pivotIndex - 1, descending);
-            quicksortWithTracking(arr, pivotIndex + 1, high, descending);
+            quicksort(arr, low, pivotIndex - 1, descending);
+            quicksort(arr, pivotIndex + 1, high, descending);
         }
     }
 
-    /**
-     * Partitions the array using the Lomuto partition scheme.
-     * Tracks indices of swapped elements for visual highlighting.
-     *
-     * @param arr the array to partition
-     * @param low the starting index of the subarray
-     * @param high the pivot index
-     * @param descending true for descending sort, false for ascending
-     * @return the partition index after pivot placement
-     */
-    private int partitionWithTracking(int[] arr, int low, int high, boolean descending) {
+    private int partition(int[] arr, int low, int high, boolean descending) {
         int pivot = arr[high];
-        int i = low;
+        int i = low - 1;
         Set<Integer> swappedIndices = new HashSet<>();
 
         for (int j = low; j < high; j++) {
-            if ((descending && arr[j] > pivot) || (!descending && arr[j] < pivot)) {
-                int temp = arr[i];
-                arr[i] = arr[j];
-                arr[j] = temp;
-                swappedIndices.add(i);
-                swappedIndices.add(j);
+            boolean condition = descending ? arr[j] > pivot : arr[j] < pivot;
+            if (condition) {
                 i++;
+                if (i != j) {
+                    int temp = arr[i];
+                    arr[i] = arr[j];
+                    arr[j] = temp;
+                    swappedIndices.add(i);
+                    swappedIndices.add(j);
+                }
             }
         }
 
-        int temp = arr[i];
-        arr[i] = arr[high];
-        arr[high] = temp;
-        swappedIndices.add(i);
-        swappedIndices.add(high);
+        i++;
+        if (i != high) {
+            int temp = arr[i];
+            arr[i] = arr[high];
+            arr[high] = temp;
+            swappedIndices.add(i);
+            swappedIndices.add(high);
+        }
 
         highlightSteps.add(new HashSet<>(swappedIndices));
         return i;
     }
 
-    /**
-     * Creates a vertical JPanel with BoxLayout for number columns.
-     *
-     * @return a JPanel with vertical BoxLayout
-     */
     private JPanel createColumnPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         return panel;
     }
 
-    /**
-     * Creates a styled JButton with specified text and background color.
-     *
-     * @param text the button label text
-     * @param bg the background color
-     * @return a styled JButton
-     */
     private JButton createStyledButton(String text, Color bg) {
         JButton button = new JButton(text);
         button.setPreferredSize(new Dimension(100, 35));
@@ -369,31 +307,16 @@ public class Main extends JFrame {
         return button;
     }
 
-    /**
-     * Applies style to number buttons: blue background with white text.
-     *
-     * @param btn the JButton to style
-     */
     private void styleBlueButton(JButton btn) {
         btn.setPreferredSize(NUMBER_BUTTON_SIZE);
         btn.setBackground(COLOR_BLUE);
         btn.setForeground(Color.WHITE);
     }
 
-    /**
-     * Shows a modal information dialog with the specified message.
-     *
-     * @param message the message text to display
-     */
     private void showMessage(String message) {
         JOptionPane.showMessageDialog(this, message);
     }
 
-    /**
-     * Application entry point.
-     *
-     * @param args command line arguments
-     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Main::new);
     }
